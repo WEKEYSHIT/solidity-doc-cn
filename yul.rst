@@ -1,10 +1,11 @@
 .. _yul:
+.. include:: glossaries.rst
 
 ###
 Yul
 ###
 
-.. index:: ! assembly, ! asm, ! evmasm, ! yul, julia, iulia
+.. index:: storage, memory, ! assembly, ! asm, ! evmasm, ! yul, julia, iulia
 
 Yul（之前称为 JULIA 或 IULIA）是一种中间语言，其可以被编译为多种后端的字节码。
 
@@ -98,12 +99,9 @@ It can be compiled using ``solc --strict-assembly``. The builtin functions
 独立形式的使用
 =================
 
-你通过 Soldity 编译器在EVM方言中使用 Yul 的独立形式。
-You can use Yul in its stand-alone form in the EVM dialect using the Solidity compiler.
-
-This will use the `Yul object notation <yul-objects>`_ so that it is possible to refer
-to code as data to deploy contracts. This Yul mode is available for the commandline compiler
-(use ``--strict-assembly``) and for the :ref:`standard-json interface <compiler-api>`:
+你通过 Soldity 编译器在 EVM 方言中使用 Yul 的独立形式。
+这将使用 `Yul object notation <yul-objects>`_ 以便将代码当作数据去部署合约。
+Yul 独立形式可用于命令行编译器（使用 ``--strict-assembly``）以及 :ref:`standard-json interface <compiler-api>`。
 
 ::
 
@@ -116,82 +114,71 @@ to code as data to deploy contracts. This Yul mode is available for the commandl
         }
     }
 
-.. warning::
+.. 警告::
 
-    Yul is in active development and bytecode generation is only fully implemented for the EVM dialect of Yul
-    with EVM 1.0 as target.
+    Yul 还在开发过程中并且生成的字节码只完全实现了 EVM 1.0 的 EVM方言。
 
 
-Informal Description of Yul
+Yul 的非正式描述
 ===========================
 
-In the following, we will talk about each individual aspect
-of the Yul language. In examples, we will use the default EVM dialect.
+接下来，我们将讨论Yul语言的各个方面。 
+在示例中，我们将使用默认的EVM方言。
 
-Syntax
+语法
 ------
 
-Yul parses comments, literals and identifiers in the same way as Solidity,
-so you can e.g. use ``//`` and ``/* */`` to denote comments.
-There is one exception: Identifiers in Yul can contain dots: ``.``.
+Yul 解析注释、字面量和标识符的方式与 Solidity 相同，所以你可以用 ``//`` 和 ``/* */`` 来表示注释。
+有一个例外：Yul中的标识符可以包含点：``.``。
 
-Yul can specify "objects" that consist of code, data and sub-objects.
-Please see `Yul Objects <yul-objects>`_ below for details on that.
-In this section, we are only concerned with the code part of such an object.
-This code part always consists of a curly-braces
-delimited block. Most tools support specifying just a code block
-where an object is expected.
+Yul “对象”由代码、数据和子对象组成。详情请见下面的 `Yul Objects <yul-objects>`_。
 
-Inside a code block, the following elements can be used
-(see the later sections for more details):
+在本节中，我们只关心对象的代码部分。
+代码部分总是由用大括号分隔的块组成。
+大多数工具只支持对象包含一个代码块。
 
- - literals, i.e. ``0x123``, ``42`` or ``"abc"`` (strings up to 32 characters)
- - calls to builtin functions, e.g. ``add(1, mload(0))``
- - variable declarations, e.g. ``let x := 7``, ``let x := add(y, 3)`` or ``let x`` (initial value of 0 is assigned)
- - identifiers (variables), e.g. ``add(3, x)``
- - assignments, e.g. ``x := add(y, 3)``
- - blocks where local variables are scoped inside, e.g. ``{ let x := 3 { let y := add(x, 1) } }``
- - if statements, e.g. ``if lt(a, b) { sstore(0, 1) }``
- - switch statements, e.g. ``switch mload(0) case 0 { revert() } default { mstore(0, 1) }``
- - for loops, e.g. ``for { let i := 0} lt(i, 10) { i := add(i, 1) } { mstore(i, 7) }``
- - function definitions, e.g. ``function f(a, b) -> c { c := add(a, b) }```
+在一个代码块中，可以使用以下元素（更多细节请参阅后续章节）：
 
-Multiple syntactical elements can follow each other simply separated by
-whitespace, i.e. there is no terminating ``;`` or newline required.
+ - 字面量，如 ``0x123``, ``42`` 或 ``"abc"`` (最多32字节)
+ - 调用内建函数，如 ``add(1, mload(0))``
+ - 变量定义， 如 ``let x := 7``, ``let x := add(y, 3)`` 或 ``let x``（初始值为0）
+ - 标识符 （变量），如 ``add(3, x)``
+ - 赋值，如 ``x := add(y, 3)``
+ - 块作用域中的局部变量，如 ``{ let x := 3 { let y := add(x, 1) } }``
+ - if 语句，如 ``if lt(a, b) { sstore(0, 1) }``
+ - switch 语句，如 ``switch mload(0) case 0 { revert() } default { mstore(0, 1) }``
+ - for 循环，如 ``for { let i := 0} lt(i, 10) { i := add(i, 1) } { mstore(i, 7) }``
+ - 函数定义，如 ``function f(a, b) -> c { c := add(a, b) }```
 
-Literals
+
+多个语法元素之间可以简单地用空格分隔，即不需要 ``;`` 或换行。
+
+字面量
 --------
 
-You can use integer constants in decimal or hexadecimal notation.
-When compiling for the EVM, this will be translated into an
-appropriate ``PUSHi`` instruction. In the following example,
-``3`` and ``2`` are added resulting in 5 and then the
-bitwise ``and`` with the string "abc" is computed.
-The final value is assigned to a local variable called ``x``.
-Strings are stored left-aligned and cannot be longer than 32 bytes.
+你可以使用十进制或十六进制表示整数常量。在为EVM编译时，将会被转换成适当的 ``PUSHi`` 指令。
+在下面的示例中，将 ``3`` 和 ``2`` 相加得到5，然后和字符串“abc”做位与运算。
+最后的结果被赋给局部变量 ``x``。
+字符串以左对齐方式存储，长度不能超过32字节。
 
-.. code::
+.. 代码::
 
     let x := and("abc", add(3, 2))
 
-Unless it is the default type, the type of a literal
-has to be specified after a colon:
+除非是默认类型，否则字面量的类型必须在冒号之后指定:
 
-.. code::
+.. 代码::
 
     let x := and("abc":uint32, add(3:uint256, 2:uint256))
 
 
-Function Calls
+函数调用
 --------------
 
-Both built-in and user-defined functions (see below) can be called
-in the same way as shown in the previous example.
-If the function returns a single value, it can be directly used
-inside an expression again. If it returns multiple values,
-they have to be assigned to local variables.
+内建函数和用户定义函数(见下面)的调用方式是一样的，就如前面的例子。
+如果函数返回单个值，则可以直接在表达式中使用它。如果返回多个值，则必须将它们赋值给局部变量。
 
-.. code::
+.. 代码::
 
     mstore(0x80, add(mload(0x80), 3))
     // Here, the user-defined function `f` returns
@@ -199,38 +186,29 @@ they have to be assigned to local variables.
     // is missing from the example.
     let x, y := f(1, mload(0))
 
-For built-in functions of the EVM, functional expressions
-can be directly translated to a stream of opcodes:
-You just read the expression from right to left to obtain the
-opcodes. In the case of the first line in the example, this
-is ``PUSH1 3 PUSH1 0x80 MLOAD ADD PUSH1 0x80 MSTORE``.
+对于 EVM 的内建函数，函数表达式可以直接转换为一系列操作码:
 
-For calls to user-defined functions, the arguments are also
-put on the stack from right to left and this is the order
-in which argument lists are evaluated. The return values,
-though, are expected on the stack from left to right,
-i.e. in this example, ``y`` is on top of the stack and ``x``
-is below it.
+只需从右向左读取表达式即可得出操作码。
+在本例的第一行中，这是 ``PUSH1 3 PUSH1 0x80 MLOAD ADD PUSH1 0x80 MSTORE``。
 
-Variable Declarations
+对于用户定义函数的调用，参数从右到左放在栈上，这也是参数列表的计算顺序。
+但是，返回值是从左到右的顺序放在栈上，在本例中，``y`` 在堆顶，``x`` 在其之下。
+
+变量声明
 ---------------------
 
-You can use the ``let`` keyword to declare variables.
-A variable is only visible inside the
-``{...}``-block it was defined in. When compiling to the EVM,
-a new stack slot is created that is reserved
-for the variable and automatically removed again when the end of the block
-is reached. You can provide an initial value for the variable.
-If you do not provide a value, the variable will be initialized to zero.
+你可以使用 ``let`` 关键字来声明变量。
 
-Since variables are stored on the stack, they do not directly
-influence memory or storage, but they can be used as pointers
-to memory or storage locations in the built-in functions
-``mstore``, ``mload``, ``sstore`` and ``sload``.
-Future dialects migh introduce specific types for such pointers.
+变量只能在定义它的块 ``{...}`` 中访问
+当编译到EVM时，会为变量在栈上留出一个新的槽位，并在块尾时自动删除。
+可以为变量提供一个初值，否则为0。
 
-When a variable is referenced, its current value is copied.
-For the EVM, this translates to a ``DUP`` instruction.
+
+由于变量存在栈上，因此它们不会直接影响内存或 |storage|，但是它们可以作为指向 |storage| 或者 |memory| 的指针，被内建函数 ``mstore``, ``mload``, ``sstore`` 和 ``sload`` 使用。
+未来的方言可能会为这种指针引入特定的类型。
+
+当引用一个变量时，它的值会被复制。
+对于 EVM，会被转换为 ``DUP`` 指令。
 
 .. code::
 
@@ -245,10 +223,8 @@ For the EVM, this translates to a ``DUP`` instruction.
     } // v and zero are "deallocated" here
 
 
-If the declared variable should have a type different from the default type,
-you denote that following a colon. You can also declare multiple
-variables in one statement when you assign from a function call
-that returns multiple values.
+如果声明的变量不是默认类型，则其在冒号后指定。
+当函数返回多个值时，还可以在一条语句中声明多个变量。
 
 .. code::
 
@@ -258,20 +234,21 @@ that returns multiple values.
         let x, y := g()
     }
 
-Depending on the optimiser settings, the compiler can free the stack slots
-already after the variable has been used for
-the last time, even though it is still in scope.
+根据优化器的设置，编译器可以在变量最后一次使用后释放其占用的栈槽，即便它仍然在作用域内。
 
 
-Assignments
+赋值
 -----------
 
 Variables can be assigned to after their definition using the
-``:=`` operator. It is possible to assign multiple
-variables at the same time. For this, the number and types of the
-values have to match.
+``:=`` operator.
+变量定义之后可以使用 ``:=`` 进行赋值。
+由于可同时给多个变量赋值，因此，值的数量和类型必须匹配。
+
 If you want to assign the values returned from a function that has
 multiple return parameters, you have to provide multiple variables.
+
+如果赋值来源是函数返回的多值，则必须提供多个变量。
 
 .. code::
 
@@ -288,24 +265,24 @@ If
 --
 
 The if statement can be used for conditionally executing code.
-No "else" block can be defined. Consider using "switch" instead (see below) if
-you need multiple alternatives.
+if 语句可用于条件执行代码。不能定义 "else" 代码块。如果有多个分支，可以考虑用 "switch" 代替。
 
 .. code::
 
     if eq(value, 0) { revert(0, 0) }
 
-The curly braces for the body are required.
+块主体的大括号是必需的。
 
 Switch
 ------
 
-You can use a switch statement as an extended version of the if statement.
-It takes the value of an expression and compares it to several literal constants.
-The branch corresponding to the matching constant is taken.
-Contrary to other programming languages, for safety reasons, control flow does
-not continue from one case to the next. There can be a fallback or default
-case called ``default`` which is taken if none of the literal constants matches.
+可以使用 switch 语句作为 if 语句的扩展版本。
+
+它获取一个表达式的值，并将其与多个字面常量进行比较。
+匹配的常量对应的分支将会被跳转。
+
+与别的编程语言不同，出于安全考虑，控制流不会从一个 case 块延续到下一个 case 块。
+可以定义默认块  ``default``，在没有字面常量匹配的情况下，将跳转到该块。
 
 .. code::
 
@@ -321,23 +298,20 @@ case called ``default`` which is taken if none of the literal constants matches.
         sstore(0, div(x, 2))
     }
 
-The list of cases is not enclosed by curly braces, but the body of a
-case does require them.
 
-Loops
+switch 语句对应的 case 列表不需要用大括号括起来，但是 case 块的主体需要。
+
+
+循环
 -----
 
-Yul supports for-loops which consist of
-a header containing an initializing part, a condition, a post-iteration
-part and a body. The condition has to be an expression, while
-the other three are blocks. If the initializing part
-declares any variables at the top level, the scope of these variables extends to all other
-parts of the loop.
+Yul 支持 for 循环，它由头和主体组成，头包含初始化部分、条件部分、迭代部分。
+条件部分必须是一个表达式，而其他三个部分是块。
+在初始化部分声明的变量，其作用域扩展至循环的所有部分。
 
-The ``break`` and ``continue`` statements can be used in the body to exit the loop
-or skip to the post-part, respectively.
+``break`` 和 ``continue`` 语句可以在主体部分中使用，分别用于退出循环和跳过迭代部分。
 
-The following example computes the sum of an area in memory.
+下面的示例计算内存某区域数据的和。
 
 .. code::
 
@@ -348,8 +322,8 @@ The following example computes the sum of an area in memory.
         }
     }
 
-For loops can also be used as a replacement for while loops:
-Simply leave the initialization and post-iteration parts empty.
+For 循环也可以作为 while循环的替代品:
+只需将初始化部分和迭代部分留空即可。
 
 .. code::
 
@@ -362,37 +336,39 @@ Simply leave the initialization and post-iteration parts empty.
         }
     }
 
-Function Declarations
+函数声明
 ---------------------
 
-Yul allows the definition of functions. These should not be confused with functions
-in Solidity since they are never part of an external interface of a contract and
-are part of a namespace separate from the one for Solidity functions.
+Yul allows the definition of functions. 
+These should not be confused with functions in Solidity since they are never part of an external interface of a contract and are part of a namespace separate from the one for Solidity functions.
 
-For the EVM, Yul functions take their
-arguments (and a return PC) from the stack and also put the results onto the
-stack. User-defined functions and built-in functions are called in exactly the same way.
+Yul允许定义函数。
+不要把它和 Solidity 函数混淆，因为它们不是合约的外部接口，并且和 Solidity 函数有着独立的命名空间。
 
-Functions can be defined anywhere and are visible in the block they are
-declared in. Inside a function, you cannot access local variables
-defined outside of that function.
 
-Functions declare parameters and return variables, similar to Solidity.
-To return a value, you assign it to the return variable(s).
+对于 EVM, Yul 函数从栈上获取参数（以及返回地址 PC），返回值也将放到栈上。
+用户定义函数和内建函数的调用方法完全相同。
 
-If you call a function that returns multiple values, you have to assign
-them to multiple variables using ``a, b := f(x)`` or ``let a, b := f(x)``.
+Functions can be defined anywhere and are visible in the block they are declared in. 
+Inside a function, you cannot access local variables defined outside of that function.
 
-The ``leave`` statement can be used to exit the current function. It
-works like the ``return`` statement in other languages just that it does
-not take a value to return, it just exits the functions and the function
-will return whatever values are currently assigned to the return variable(s).
+函数可以定义在任何地方，并且在声明它们的块中是可见的。
+在函数内部，无法访问函数外定义的局部变量。
 
-Note that the EVM dialect has a built-in function called ``return`` that
-quits the full execution context (internal message call) and not just
-the current yul function.
 
-The following example implements the power function by square-and-multiply.
+函数声明其参数和返回值变量，类似于 Solidity。
+要返回一个值，需要将其分配为返回值变量。
+
+
+如果调用一个返回多值的函数，则必须通过 ``a, b := f(x)`` 或 ``let a, b := f(x)`` 将它们赋值给多个变量。
+
+``leave`` 语句可用于退出当前函数。
+它的工作方式类似于别的语言中的 ``return`` 语句，只是它不接受返回值，它只是退出函数，而函数将返回当前返回值变量的值。
+
+
+注意，EVM 方言有一个名为 ``return`` 的内置函数，它退出整个执行上下文（内部消息调用），而不仅仅是当前 yul 函数。
+
+下面的示例通过平方与乘法来实现幂函数。
 
 .. code::
 
@@ -409,13 +385,12 @@ The following example implements the power function by square-and-multiply.
         }
     }
 
-Specification of Yul
+Yul 规范
 ====================
 
-This chapter describes Yul code formally. Yul code is usually placed inside Yul objects,
-which are explained in their own chapter.
+本章正式描述 Yul 代码。Yul 代码通常放在 Yul 对象中，这将在它们自己的章节中进行解释。
 
-Grammar::
+语法::
 
     Block = '{' Statement* '}'
     Statement =
@@ -468,7 +443,7 @@ Grammar::
     DecimalNumber = [0-9]+
 
 
-Restrictions on the Grammar
+语法限制
 ---------------------------
 
 Apart from those directly imposed by the grammar, the following
@@ -514,7 +489,7 @@ There is no implicit type conversion. Type conversion in general can only be ach
 if the dialect provides an appropriate built-in function that takes a value of one
 type and returns a value of a different type.
 
-Scoping Rules
+作用域规则
 -------------
 
 Scopes in Yul are tied to Blocks (exceptions are functions and the for loop
@@ -552,7 +527,7 @@ not accessible.
 Inside functions, it is not possible to access a variable that was declared
 outside of that function.
 
-Formal Specification
+正式规范
 --------------------
 
 We formally specify Yul by providing an evaluation function E overloaded
@@ -680,7 +655,7 @@ We will use a destructuring notation for the AST nodes.
 
 .. _opcodes:
 
-EVM Dialect
+EVM 方言
 -----------
 
 The default dialect of Yul currently is the EVM dialect for the currently selected version of the EVM.
@@ -988,7 +963,7 @@ An example Yul Object is shown below:
         }
     }
 
-Yul Optimizer
+Yul 优化器
 =============
 
 The Yul optimizer operates on Yul code and uses the same language for input, output and
