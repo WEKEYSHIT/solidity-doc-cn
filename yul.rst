@@ -9,7 +9,7 @@ Yul
 
 Yul（之前称为 JULIA 或 IULIA）是一种中间语言，其可以被编译为多种后端的字节码。
 
-Yul 计划支持 EVM 1.0, EVM 1.5 和 eWASM, 并且它被设计成为三者的通用标准。Yul 可以使用其独立形式也可以作为“内联汇编”嵌入在Solidiyt中使用，并且已经实现了一个试验性的 Solidity 编译器，其使用 Yul 来作为中间语言。 
+Yul 计划支持 EVM 1.0, EVM 1.5 和 eWASM, 并且它被设计成为三者的通用标准。Yul 可以使用其独立形式也可以作为“内联汇编”嵌入在 Solidity 中使用，并且已经实现了一个试验性的 Solidity 编译器，其使用 Yul 来作为中间语言。 
 Yul 对于高阶优化来说是一个很好的目标，所有的目标平台都可以同等的从中受益。
 
 动机和高阶描述
@@ -40,13 +40,8 @@ Yul 的设计想要达成一些目标：
 
 
 为保持语言的简单和灵活性，纯 Yul 形式没有任何内置的操作码，函数或者类型。
-To keep the language simple and flexible, Yul does not have
-any built-in operations, functions or types in its pure form.
 
 当 Yul 被指定为某种方言时，该方言的语义以及相关操作码，函数和类型会一起添加进去，这样 Yul 可以被具体化以满足不同目标平台和不同特性的要求。
-These are added together with their semantics when specifying a dialect of Yul,
-which allows to specialize Yul to the requirements of different
-target platforms and feature sets.
 
 目前，Yul 只有一种方言。
 该方言使用 EVM 操作码作为内置函数（参见下面），并且只定义了类型 ``u256``，这是EVM原生的256位类型。
@@ -58,8 +53,6 @@ target platforms and feature sets.
 下面的示例程序使用 EVM 方言写的，用于计算幂次方。
 可以使用 ``solc --strict-assembly`` 来编译。
 内建函数 ``mul`` 和 ``div`` 分别计算乘法和除法。
-It can be compiled using ``solc --strict-assembly``. The builtin functions
-``mul`` and ``div`` compute product and division, respectively.
 
 .. code::
 
@@ -139,7 +132,7 @@ Yul “对象”由代码、数据和子对象组成。详情请见下面的 `Yu
 
 在一个代码块中，可以使用以下元素（更多细节请参阅后续章节）：
 
- - 字面量，如 ``0x123``, ``42`` 或 ``"abc"`` (最多32字节)
+ - 字面量，如 ``0x123``, ``42`` 或 ``"abc"``（最多32字节）
  - 调用内建函数，如 ``add(1, mload(0))``
  - 变量定义， 如 ``let x := 7``, ``let x := add(y, 3)`` 或 ``let x``（初始值为0）
  - 标识符 （变量），如 ``add(3, x)``
@@ -161,13 +154,13 @@ Yul “对象”由代码、数据和子对象组成。详情请见下面的 `Yu
 最后的结果被赋给局部变量 ``x``。
 字符串以左对齐方式存储，长度不能超过32字节。
 
-.. 代码::
+.. code::
 
     let x := and("abc", add(3, 2))
 
 除非是默认类型，否则字面量的类型必须在冒号之后指定:
 
-.. 代码::
+.. code::
 
     let x := and("abc":uint32, add(3:uint256, 2:uint256))
 
@@ -178,7 +171,7 @@ Yul “对象”由代码、数据和子对象组成。详情请见下面的 `Yu
 内建函数和用户定义函数(见下面)的调用方式是一样的，就如前面的例子。
 如果函数返回单个值，则可以直接在表达式中使用它。如果返回多个值，则必须将它们赋值给局部变量。
 
-.. 代码::
+.. code::
 
     mstore(0x80, add(mload(0x80), 3))
     // Here, the user-defined function `f` returns
@@ -204,7 +197,7 @@ Yul “对象”由代码、数据和子对象组成。详情请见下面的 `Yu
 可以为变量提供一个初值，否则为0。
 
 
-由于变量存在栈上，因此它们不会直接影响内存或 |storage|，但是它们可以作为指向 |storage| 或者 |memory| 的指针，被内建函数 ``mstore``, ``mload``, ``sstore`` 和 ``sload`` 使用。
+由于变量存在栈上，因此它们不会直接影响 |memory| 或 |storage|，但是它们可以作为指向 |storage| 或者 |memory| 的指针，被内建函数 ``mstore``, ``mload``, ``sstore`` 和 ``sload`` 使用。
 未来的方言可能会为这种指针引入特定的类型。
 
 当引用一个变量时，它的值会被复制。
@@ -240,13 +233,8 @@ Yul “对象”由代码、数据和子对象组成。详情请见下面的 `Yu
 赋值
 -----------
 
-Variables can be assigned to after their definition using the
-``:=`` operator.
 变量定义之后可以使用 ``:=`` 进行赋值。
 由于可同时给多个变量赋值，因此，值的数量和类型必须匹配。
-
-If you want to assign the values returned from a function that has
-multiple return parameters, you have to provide multiple variables.
 
 如果赋值来源是函数返回的多值，则必须提供多个变量。
 
@@ -264,7 +252,6 @@ multiple return parameters, you have to provide multiple variables.
 If
 --
 
-The if statement can be used for conditionally executing code.
 if 语句可用于条件执行代码。不能定义 "else" 代码块。如果有多个分支，可以考虑用 "switch" 代替。
 
 .. code::
@@ -339,18 +326,12 @@ For 循环也可以作为 while循环的替代品:
 函数声明
 ---------------------
 
-Yul allows the definition of functions. 
-These should not be confused with functions in Solidity since they are never part of an external interface of a contract and are part of a namespace separate from the one for Solidity functions.
-
 Yul允许定义函数。
 不要把它和 Solidity 函数混淆，因为它们不是合约的外部接口，并且和 Solidity 函数有着独立的命名空间。
 
 
 对于 EVM, Yul 函数从栈上获取参数（以及返回地址 PC），返回值也将放到栈上。
 用户定义函数和内建函数的调用方法完全相同。
-
-Functions can be defined anywhere and are visible in the block they are declared in. 
-Inside a function, you cannot access local variables defined outside of that function.
 
 函数可以定义在任何地方，并且在声明它们的块中是可见的。
 在函数内部，无法访问函数外定义的局部变量。
