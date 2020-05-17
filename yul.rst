@@ -413,86 +413,62 @@ Yul 规范
 语法限制
 ---------------------------
 
-Apart from those directly imposed by the grammar, the following
-restrictions apply:
 
-Switches must have at least one case (including the default case).
-All case values need to have the same type and distinct values.
-If all possible values of the expression type are covered, a default case is
-not allowed (i.e. a switch with a ``bool`` expression that has both a
-true and a false case do not allow a default case).
+除了语法直接的限制外，还有以下限制：
 
-Every expression evaluates to zero or more values. Identifiers and Literals
-evaluate to exactly
-one value and function calls evaluate to a number of values equal to the
-number of return variables of the function called.
+switch至少需包含一个case语句(或者default)。
+所有case的值都得是相同的类型并且值不同。
+如果表达式所有可能的值都覆盖了，则不可以有default语句 (例如，对于``bool`` 类型的表达式，如果case覆盖了true和false，则不可以再有default）。
 
-In variable declarations and assignments, the right-hand-side expression
-(if present) has to evaluate to a number of values equal to the number of
-variables on the left-hand-side.
-This is the only situation where an expression evaluating
-to more than one value is allowed.
+每个表达式的求得的值都是零值或多个值。
+标识符和字面量求得的值为一个值，而函数调用求得值的数量取决于其所调用函数返回值的数量。
 
-Expressions that are also statements (i.e. at the block level) have to
-evaluate to zero values.
+变量声明和赋值时，右值表达式(如果存在)值的数量必须等于左值变量的数量。
+这是唯一允许表达式求得多个值的情况。
 
-In all other situations, expressions have to evaluate to exactly one value.
+Expressions that are also statements (i.e. at the block level) have to evaluate to zero values.
+表达式也是语句（例如，在块级别）必须为零值。
 
-The ``continue`` and ``break`` statements can only be used inside loop bodies
-and have to be in the same function as the loop (or both have to be at the
-top level). The ``continue`` and ``break`` statements cannot be used
-in other parts of a loop, not even when it is scoped inside a second loop's body.
+在所有别的情况下，表达式必须精确地求值为一个值。
 
-The condition part of the for-loop has to evaluate to exactly one value.
+``continue`` 和 ``break`` 语句只能在循环体内部使用，并且必须与循环处于相同的函数中（或者他们都必须位于顶层）。
+The ``continue`` and ``break`` statements cannot be used in other parts of a loop, not even when it is scoped inside a second loop's body.
+``continue`` 和 ``break`` 语句不能在循环的其他部分中使用，除非它在二级循环体中。
 
-The ``leave`` statement can only be used inside a function.
+for循环的条件部分必须明确的求得一个值。
 
-Functions cannot be defined anywhere inside for loop init blocks.
+``leave`` 语句只能在函数中使用。
 
-Literals cannot be larger than the their type. The largest type defined is 256-bit wide.
+在 for 循环的 init 块中不可以定义函数。
 
-During assignments and function calls, the types of the respective values have to match.
-There is no implicit type conversion. Type conversion in general can only be achieved
-if the dialect provides an appropriate built-in function that takes a value of one
-type and returns a value of a different type.
+字面量的值不能大于其对应类型的最大值。最大的类型是256位。
+
+在赋值和函数调用时，各个值的类型必须匹配。
+不能有隐式类型转换。
+通常，类型转换只能由方言提供的内置函数实现，该函数接受一种类型的参数并返回另一种类型的值。
 
 作用域规则
 -------------
 
-Scopes in Yul are tied to Blocks (exceptions are functions and the for loop
-as explained below) and all declarations
-(``FunctionDefinition``, ``VariableDeclaration``)
-introduce new identifiers into these scopes.
+Yul中的作用域与块绑定（例外是函数和for循环，后文将会解释），所有的声明（``FunctionDefinition``, ``VariableDeclaration``）都将新的标识符引入这些作用域。
 
-Identifiers are visible in
-the block they are defined in (including all sub-nodes and sub-blocks).
+标识符在定义它们的块中是可见的（包括所有子节点和子块）。
 
-As an exception, the scope of the "init" part of the or-loop
-(the first block) extends across all other parts of the for loop.
-This means that variables declared in the init part (but not inside a
-block inside the init part) are visible in all other parts of the for-loop.
+有一个例外，for循环的init部分（第一个块）的作用域会扩展到for循环的所有部分。
+这意味着在init部分中声明的变量（但是不在init部分的子块中声明）在for循环的所有部分中都是可见的。
 
-Identifiers declared in the other parts of the for loop respect the regular
-syntactical scoping rules.
+在for循环的其他部分声明的标识符遵循常规语法的作用域规则。
 
-This means a for-loop of the form ``for { I... } C { P... } { B... }`` is equivalent
-to ``{ I... for {} C { P... } { B... } }``.
+这意味着``for { I... } C { P... } { B... }``等效于``{ I... for {} C { P... } { B... } }``。
 
+函数的参数和返回值在函数体中是可见的，并且它们的名称必须是不同的。
 
-The parameters and return parameters of functions are visible in the
-function body and their names have to be distinct.
+变量只能在声明之后引用。特别是，变量不能在其自身变量声明的右侧引用。
+函数可以在其声明之前引用（如果它们是可见的）。
 
-Variables can only be referenced after their declaration. In particular,
-variables cannot be referenced in the right hand side of their own variable
-declaration.
-Functions can be referenced already before their declaration (if they are visible).
+隐式变量是不允许的。例如，当一个变量可见的情况下，不可以定义另一个同名变量，即使它是不可访问的。
 
-Shadowing is disallowed, i.e. you cannot declare an identifier at a point
-where another identifier with the same name is also visible, even if it is
-not accessible.
-
-Inside functions, it is not possible to access a variable that was declared
-outside of that function.
+在函数内部，无法访问在函数外部声明的变量。
 
 正式规范
 --------------------
@@ -933,17 +909,16 @@ An example Yul Object is shown below:
 Yul 优化器
 =============
 
-The Yul optimizer operates on Yul code and uses the same language for input, output and
-intermediate states. This allows for easy debugging and verification of the optimizer.
+Yul优化器对Yul代码进行操作，并且使用相同的语言表示输入、输出和中间状态。这样就可以方便地调试和验证优化器。
 
-Please see the
-`documentation in the source code <https://github.com/ethereum/solidity/blob/develop/libyul/optimiser/README.md>`_
-for more details about its internals.
+更详细的内部细节请参考`源码中的文档 <https://github.com/ethereum/solidity/blob/develop/libyul/optimiser/README.md>`_
 
-If you want to use Solidity in stand-alone Yul mode, you activate the optimizer using ``--optimize``:
+If you want to use SSSS in stand-alone Yul mode, you activate the optimizer using ``--optimize``:
+如果你想使用Yul独立形式的Solidity，可以使用 ``--optimize`` 来激活优化器：
+
 
 ::
 
     solc --strict-assembly --optimize
 
-In Solidity mode, the Yul optimizer is activated together with the regular optimizer.
+在Solidity模式下，Yul优化器会与常规优化器一起被激活。
